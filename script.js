@@ -1560,3 +1560,76 @@ function getRemainingTasksCount() {
     
     return remaining;
 }
+
+// Daily Riddle functionality
+const riddles = [
+    { question: "I have cities, but no houses live there. I have mountains, but no trees grow there. I have water, but no fish swim there. I have roads, but no cars drive there. What am I?", answer: "A map" },
+    { question: "The more you take, the more you leave behind. What am I?", answer: "Footsteps" },
+    { question: "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?", answer: "An echo" },
+    { question: "I can be cracked, made, told, and played. What am I?", answer: "A joke" },
+    { question: "What has keys but no locks, space but no room, and you can enter but can't go inside?", answer: "A keyboard" },
+    { question: "I have hands but cannot clap. What am I?", answer: "A clock" },
+    { question: "The person who makes it, sells it. The person who buys it never uses it. The person who uses it never knows they're using it. What is it?", answer: "A coffin" },
+    { question: "I can fly without wings. I can cry without eyes. Wherever I go, darkness follows me. What am I?", answer: "A cloud" },
+    { question: "What can travel around the world while staying in a corner?", answer: "A stamp" },
+    { question: "I have a head and a tail but no body. What am I?", answer: "A coin" },
+    { question: "What gets wetter the more it dries?", answer: "A towel" },
+    { question: "I am not alive, but I grow; I don't have lungs, but I need air; I don't have a mouth, but water kills me. What am I?", answer: "Fire" },
+    { question: "What can you hold in your right hand but never in your left hand?", answer: "Your left hand" },
+    { question: "What has a neck but no head?", answer: "A bottle" },
+    { question: "I'm tall when I'm young and short when I'm old. What am I?", answer: "A candle" },
+    { question: "What can run but never walks, has a mouth but never talks, has a head but never weeps, has a bed but never sleeps?", answer: "A river" },
+    { question: "What building has the most stories?", answer: "A library" },
+    { question: "What can you catch but never throw?", answer: "A cold" },
+    { question: "What has many teeth but cannot bite?", answer: "A comb" },
+    { question: "I am always in front of you but can't be seen. What am I?", answer: "The future" },
+    { question: "What word in the English language does the following: the first two letters signify a male, the first three letters signify a female, the first four letters signify a great, while the entire word signifies a great woman?", answer: "Heroine" },
+    { question: "What disappears as soon as you say its name?", answer: "Silence" },
+    { question: "I have branches, but no fruit, trunk, or leaves. What am I?", answer: "A bank" },
+    { question: "What can fill a room but takes up no space?", answer: "Light" },
+    { question: "If you drop me, I'm sure to crack, but give me a smile and I'll always smile back. What am I?", answer: "A mirror" },
+    { question: "What goes up but never comes down?", answer: "Your age" },
+    { question: "What begins with T, ends with T, and has T in it?", answer: "A teapot" },
+    { question: "What is seen in the middle of March and April that can't be seen at the beginning or end of either month?", answer: "The letter R" },
+    { question: "What word is pronounced the same if you take away four of its five letters?", answer: "Queue" },
+    { question: "What breaks yet never falls, and what falls yet never breaks?", answer: "Day and night" },
+    { question: "A man who was outside in the rain without an umbrella or hat didn't get a single hair on his head wet. Why?", answer: "He was bald" }
+];
+
+function getDailyRiddle() {
+    const today = new Date();
+    const startOfYear = new Date(today.getFullYear(), 0, 0);
+    const diff = today - startOfYear;
+    const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+    return riddles[dayOfYear % riddles.length];
+}
+
+function loadDailyRiddle() {
+    const riddle = getDailyRiddle();
+    const questionEl = document.getElementById('riddle-question');
+    const answerEl = document.getElementById('riddle-answer');
+    const revealBtn = document.getElementById('reveal-riddle');
+    
+    if (questionEl) {
+        questionEl.textContent = riddle.question;
+    }
+    if (answerEl) {
+        answerEl.textContent = riddle.answer;
+        answerEl.classList.add('hidden');
+    }
+    if (revealBtn) {
+        revealBtn.textContent = 'Reveal Answer';
+        revealBtn.onclick = () => {
+            if (answerEl.classList.contains('hidden')) {
+                answerEl.classList.remove('hidden');
+                revealBtn.textContent = 'Hide Answer';
+            } else {
+                answerEl.classList.add('hidden');
+                revealBtn.textContent = 'Reveal Answer';
+            }
+        };
+    }
+}
+
+// Initialize riddle on page load
+document.addEventListener('DOMContentLoaded', loadDailyRiddle);
