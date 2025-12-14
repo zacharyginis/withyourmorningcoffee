@@ -1248,31 +1248,343 @@ footer p {
 }
 
 @media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
     .bible-quote-box {
         margin: 10px;
         border-radius: 16px;
         padding: 15px;
     }
     
+    .bible-quote-text {
+        font-size: 0.95em;
+    }
+    
     .container {
-        padding: 30px 20px;
-        border-radius: 24px;
-        margin: 10px;
+        padding: 25px 18px;
+        border-radius: 20px;
+        margin: 10px 5px;
+    }
+    
+    /* Header */
+    .header-top {
+        margin-bottom: 10px;
+    }
+    
+    .logo {
+        font-size: 2.5em;
     }
 
     header h1 {
-        font-size: 2em;
+        font-size: 1.6em;
+        line-height: 1.2;
+    }
+    
+    .tagline {
+        font-size: 0.95em;
+        margin-bottom: 15px;
+    }
+    
+    .user-greeting {
+        font-size: 1em;
+        margin-bottom: 15px;
+    }
+    
+    .date-navigation {
+        gap: 10px;
+    }
+    
+    .nav-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 1em;
+    }
+    
+    .date {
+        font-size: 0.85em;
+        min-width: auto;
+    }
+    
+    /* User Avatar */
+    .user-avatar {
+        width: 44px;
+        height: 44px;
+    }
+    
+    .user-avatar span {
+        font-size: 1.1em;
+    }
+    
+    .user-dropdown {
+        right: -10px;
+        min-width: 180px;
+    }
+
+    /* Quote Section */
+    .quote-section {
+        padding: 25px 20px;
+        margin-bottom: 30px;
+        border-radius: 18px;
+    }
+    
+    .quote-section::before {
+        font-size: 100px;
+        top: -10px;
+        left: 10px;
     }
 
     .quote-text {
+        font-size: 1.2em;
+        line-height: 1.6;
+    }
+    
+    .quote-author {
+        font-size: 0.9em;
+    }
+    
+    /* Word Section */
+    .section-header h2 {
+        font-size: 1.2em;
+    }
+    
+    .section-icon {
         font-size: 1.3em;
     }
+    
+    .word-title {
+        font-size: 1.8em;
+    }
+    
+    .word-guess-container textarea {
+        font-size: 0.95em;
+    }
+    
+    .reveal-btn {
+        padding: 12px 20px;
+        font-size: 0.9em;
+    }
 
+    /* Learning Grid */
     .learning-grid {
         grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .learning-section {
+        padding: 20px;
+    }
+    
+    .learning-title {
+        font-size: 1.1em;
+    }
+    
+    .learning-content {
+        font-size: 0.95em;
+    }
+    
+    /* Todo Section */
+    .todo-section {
+        margin-bottom: 30px;
+    }
+    
+    .todo-item {
+        padding: 12px 0;
+    }
+    
+    .todo-item label {
+        font-size: 0.95em;
+    }
+    
+    .task-checkbox {
+        width: 22px;
+        height: 22px;
+    }
+
+    /* Streak Section */
+    .streak-container {
+        padding: 25px;
+    }
+    
+    .streak-flame {
+        font-size: 2.5em;
     }
 
     .streak-number {
-        font-size: 4em;
+        font-size: 3.5em;
+    }
+    
+    .streak-label {
+        font-size: 1em;
+    }
+    
+    .streak-info {
+        font-size: 0.9em;
+    }
+    
+    /* Footer */
+    footer {
+        padding-top: 20px;
+        margin-top: 20px;
+    }
+    
+    footer p {
+        font-size: 0.9em;
+    }
+    
+    /* Auth Modal */
+    .auth-modal {
+        padding: 30px 25px;
+        margin: 15px;
+        max-width: calc(100% - 30px);
+        border-radius: 20px;
+    }
+    
+    .auth-header h2 {
+        font-size: 1.6em;
+    }
+    
+    .auth-input-group input {
+        padding: 12px 14px;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .auth-submit-btn {
+        padding: 14px;
+    }
+    
+    /* Profile Modal */
+    .profile-modal {
+        padding: 30px 20px;
+        margin: 10px;
+        max-width: calc(100% - 20px);
+        max-height: 85vh;
+    }
+    
+    .profile-header h2 {
+        font-size: 1.6em;
+    }
+    
+    .profile-picture {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .profile-picture #profile-initial {
+        font-size: 2em;
+    }
+    
+    .profile-input-group input,
+    .profile-input-group textarea {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .profile-stats {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+    
+    .profile-stat {
+        padding: 12px 8px;
+    }
+    
+    .profile-stat-value {
+        font-size: 1.4em;
+    }
+    
+    .profile-stat-label {
+        font-size: 0.65em;
+    }
+    
+    /* Background text - reduce on mobile */
+    .background-text-line {
+        font-size: 0.9rem;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+    body {
+        padding: 8px;
+    }
+    
+    .container {
+        padding: 20px 15px;
+        border-radius: 18px;
+        margin: 8px 3px;
+    }
+    
+    header h1 {
+        font-size: 1.4em;
+    }
+    
+    .tagline {
+        font-size: 0.85em;
+    }
+    
+    .quote-text {
+        font-size: 1.1em;
+    }
+    
+    .word-title {
+        font-size: 1.5em;
+    }
+    
+    .streak-number {
+        font-size: 3em;
+    }
+    
+    .profile-stats {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+    
+    .profile-stat-value {
+        font-size: 1.2em;
+    }
+    
+    .auth-modal,
+    .profile-modal {
+        padding: 25px 18px;
+    }
+    
+    .nav-btn {
+        width: 34px;
+        height: 34px;
+    }
+    
+    .date {
+        font-size: 0.8em;
+    }
+    
+    .bible-quote-box {
+        padding: 12px;
+        margin: 8px 3px;
+    }
+    
+    .bible-quote-text {
+        font-size: 0.9em;
+        padding-left: 12px;
+    }
+}
+
+/* Prevent zoom on input focus for iOS */
+@media screen and (max-width: 768px) {
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    textarea,
+    select {
+        font-size: 16px !important;
+    }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: max(0px)) {
+    body {
+        padding-left: max(10px, env(safe-area-inset-left));
+        padding-right: max(10px, env(safe-area-inset-right));
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
     }
 }
