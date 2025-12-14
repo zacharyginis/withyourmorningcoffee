@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>With Your Morning Coffee</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>☕ With Your Morning Coffee</h1>
+            <div class="date" id="current-date"></div>
+        </header>
+
+        <section class="quote-section">
+            <div class="quote-container">
+                <blockquote id="daily-quote" class="quote-text"></blockquote>
+                <cite id="quote-author" class="quote-author"></cite>
+            </div>
+        </section>
+
+        <section class="word-section">
+            <h2>📖 Word of the Day</h2>
+            <div class="word-container">
+                <div class="word-title" id="word-title"></div>
+                <div class="word-definition" id="word-definition"></div>
+            </div>
+        </section>
+
+        <section class="todo-section">
+            <h2>✅ Daily Tasks</h2>
+            <ul class="todo-list" id="todo-list">
+                <li class="todo-item">
+                    <input type="checkbox" id="task-bible" class="task-checkbox">
+                    <label for="task-bible">Read 30 minutes of the Bible</label>
+                </li>
+                <li class="todo-item">
+                    <input type="checkbox" id="task-book" class="task-checkbox">
+                    <label for="task-book">Read 30 minutes of your current book</label>
+                </li>
+                <li class="todo-item">
+                    <input type="checkbox" id="task-hillsdale" class="task-checkbox">
+                    <label for="task-hillsdale">30 minutes of Hillsdale education online</label>
+                </li>
+                <li class="todo-item">
+                    <input type="checkbox" id="task-ai" class="task-checkbox">
+                    <label for="task-ai">Learn a new AI technical concept</label>
+                </li>
+                <li class="todo-item">
+                    <input type="checkbox" id="task-word" class="task-checkbox">
+                    <label for="task-word">Review the word of the day</label>
+                </li>
+            </ul>
+        </section>
+
+        <section class="streak-section">
+            <h2>🔥 Your Streak</h2>
+            <div class="streak-container">
+                <div class="streak-number" id="streak-number">0</div>
+                <div class="streak-label">days in a row</div>
+                <div class="streak-info" id="streak-info"></div>
+            </div>
+        </section>
+
+        <footer>
+            <p>Start your day with wisdom and purpose.</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
