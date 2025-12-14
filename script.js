@@ -99,9 +99,17 @@ async function signIn(email, password) {
         });
         
         const data = await response.json();
+        console.log('Sign in response:', response.status, data);
         
         if (!response.ok) {
-            throw new Error(data.error_description || data.msg || 'Sign in failed');
+            // Handle specific error messages
+            let errorMsg = data.error_description || data.msg || data.error || 'Sign in failed';
+            if (errorMsg.includes('Invalid login')) {
+                errorMsg = 'Invalid email or password. Please try again.';
+            } else if (errorMsg.includes('Email not confirmed')) {
+                errorMsg = 'Please check your email and confirm your account first.';
+            }
+            throw new Error(errorMsg);
         }
         
         localStorage.setItem('supabase_access_token', data.access_token);
