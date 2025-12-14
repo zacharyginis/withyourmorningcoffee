@@ -15,24 +15,40 @@ async function initAuth() {
     setupAuthUI();
 }
 
+// Get access token from storage (localStorage or sessionStorage)
+function getAccessToken() {
+    return getAccessToken() || 
+           sessionStorage.getItem('supabase_access_token') || 
+           '';
+}
+
 // Check for existing session
 async function checkSession() {
     try {
+        const token = getAccessToken();
+        if (!token) {
+            updateUIForLoggedOutUser();
+            return;
+        }
+        
         const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${localStorage.getItem('supabase_access_token') || ''}`
+                'Authorization': `Bearer ${token}`
             }
         });
         
         if (response.ok) {
             currentUser = await response.json();
-            currentSession = { access_token: localStorage.getItem('supabase_access_token') };
+            currentSession = { access_token: token };
             updateUIForLoggedInUser();
             await loadUserProfile();
         } else {
             currentUser = null;
             currentSession = null;
+            // Clear invalid tokens
+            localStorage.removeItem('supabase_access_token');
+            sessionStorage.removeItem('supabase_access_token');
             updateUIForLoggedOutUser();
         }
     } catch (error) {
@@ -87,7 +103,7 @@ async function signUp(email, password, name) {
 }
 
 // Sign in with email and password
-async function signIn(email, password) {
+async function signIn(email, password, rememberMe = true) {
     try {
         const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
             method: 'POST',
@@ -112,8 +128,17 @@ async function signIn(email, password) {
             throw new Error(errorMsg);
         }
         
-        localStorage.setItem('supabase_access_token', data.access_token);
-        localStorage.setItem('supabase_refresh_token', data.refresh_token);
+        // Store tokens based on remember me preference
+        if (rememberMe) {
+            localStorage.setItem('supabase_access_token', data.access_token);
+            localStorage.setItem('supabase_refresh_token', data.refresh_token);
+            localStorage.setItem('supabase_remember', 'true');
+        } else {
+            sessionStorage.setItem('supabase_access_token', data.access_token);
+            sessionStorage.setItem('supabase_refresh_token', data.refresh_token);
+            localStorage.removeItem('supabase_remember');
+        }
+        
         currentUser = data.user;
         currentSession = { access_token: data.access_token };
         
@@ -135,17 +160,22 @@ async function signOut() {
             method: 'POST',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${localStorage.getItem('supabase_access_token')}`
+                'Authorization': `Bearer ${getAccessToken()}`
             }
         });
     } catch (error) {
         console.error('Sign out error:', error);
     }
     
+    // Clear both storage types
     localStorage.removeItem('supabase_access_token');
     localStorage.removeItem('supabase_refresh_token');
+    localStorage.removeItem('supabase_remember');
+    sessionStorage.removeItem('supabase_access_token');
+    sessionStorage.removeItem('supabase_refresh_token');
     currentUser = null;
     currentSession = null;
+    userProfile = null;
     
     updateUIForLoggedOutUser();
     loadTasks();
@@ -159,7 +189,7 @@ async function createUserProfile(userId, name, email) {
             method: 'POST',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${localStorage.getItem('supabase_access_token')}`,
+                'Authorization': `Bearer ${getAccessToken()}`,
                 'Content-Type': 'application/json',
                 'Prefer': 'return=minimal'
             },
@@ -199,7 +229,7 @@ async function loadUserProfile() {
             {
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${localStorage.getItem('supabase_access_token')}`
+                    'Authorization': `Bearer ${getAccessToken()}`
                 }
             }
         );
@@ -231,7 +261,7 @@ async function loadUserTasks() {
             {
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${localStorage.getItem('supabase_access_token')}`
+                    'Authorization': `Bearer ${getAccessToken()}`
                 }
             }
         );
@@ -287,7 +317,7 @@ async function saveUserTasks() {
                 method: 'POST',
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${localStorage.getItem('supabase_access_token')}`,
+                    'Authorization': `Bearer ${getAccessToken()}`,
                     'Content-Type': 'application/json',
                     'Prefer': 'resolution=merge-duplicates'
                 },
@@ -358,7 +388,7 @@ async function updateUserStreak() {
             {
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${localStorage.getItem('supabase_access_token')}`
+                    'Authorization': `Bearer ${getAccessToken()}`
                 }
             }
         );
@@ -436,7 +466,7 @@ async function updateUserStreak() {
                 method: 'PATCH',
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${localStorage.getItem('supabase_access_token')}`,
+                    'Authorization': `Bearer ${getAccessToken()}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(updateData)
@@ -540,6 +570,7 @@ async function handleAuthSubmit(e) {
     const email = document.getElementById('auth-email').value;
     const password = document.getElementById('auth-password').value;
     const name = document.getElementById('auth-name')?.value || '';
+    const rememberMe = document.getElementById('auth-remember')?.checked ?? true;
     
     const submitBtn = document.getElementById('auth-submit');
     submitBtn.disabled = true;
@@ -549,7 +580,7 @@ async function handleAuthSubmit(e) {
         if (isSignUpMode) {
             await signUp(email, password, name);
         } else {
-            await signIn(email, password);
+            await signIn(email, password, rememberMe);
         }
     } catch (error) {
         // Error already shown
@@ -751,7 +782,7 @@ async function handleProfilePictureUpload(e) {
                 method: 'PUT',
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${localStorage.getItem('supabase_access_token')}`,
+                    'Authorization': `Bearer ${getAccessToken()}`,
                     'Content-Type': file.type,
                     'x-upsert': 'true'
                 },
@@ -772,7 +803,7 @@ async function handleProfilePictureUpload(e) {
                     method: 'PATCH',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${localStorage.getItem('supabase_access_token')}`,
+                        'Authorization': `Bearer ${getAccessToken()}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ avatar_url: avatarUrl })
@@ -820,7 +851,7 @@ async function handleProfileSave(e) {
                 method: 'PATCH',
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${localStorage.getItem('supabase_access_token')}`,
+                    'Authorization': `Bearer ${getAccessToken()}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(profileData)

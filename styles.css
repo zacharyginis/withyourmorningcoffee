@@ -212,6 +212,47 @@ body {
     min-height: 20px;
 }
 
+.auth-checkbox-group {
+    margin: 5px 0;
+}
+
+.auth-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9em;
+    color: #555;
+}
+
+.auth-checkbox input {
+    display: none;
+}
+
+.auth-checkbox .checkmark {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.auth-checkbox input:checked + .checkmark {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+    border-color: #ff6b6b;
+}
+
+.auth-checkbox input:checked + .checkmark::after {
+    content: '✓';
+    color: white;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
 .auth-switch {
     text-align: center;
     margin-top: 25px;
