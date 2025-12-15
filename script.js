@@ -905,20 +905,25 @@ async function loadBibleQuote() {
     try {
         const dayOfYear = getDayOfYear(getViewingDate());
         
-        // First get total count
-        const countResponse = await fetch(
-            `${SUPABASE_URL}/rest/v1/biblequotes?select=id`,
+        // Fetch all quotes to get the count and select one based on day of year
+        const response = await fetch(
+            `${SUPABASE_URL}/rest/v1/biblequotes?select=quotecontent,passagenumber`,
             {
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json'
                 }
             }
         );
         
-        if (!countResponse.ok) throw new Error('Failed to fetch quote count');
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Bible quote fetch error:', errorText);
+            throw new Error('Failed to fetch quotes');
+        }
         
-        const allQuotes = await countResponse.json();
+        const allQuotes = await response.json();
         const totalQuotes = allQuotes.length;
         
         if (totalQuotes === 0) {
@@ -928,27 +933,10 @@ async function loadBibleQuote() {
         
         // Get quote based on day of year
         const quoteIndex = dayOfYear % totalQuotes;
-        const selectedQuoteId = allQuotes[quoteIndex].id;
+        const quote = allQuotes[quoteIndex];
         
-        const quoteResponse = await fetch(
-            `${SUPABASE_URL}/rest/v1/biblequotes?id=eq.${selectedQuoteId}`,
-            {
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                }
-            }
-        );
-        
-        if (!quoteResponse.ok) throw new Error('Failed to fetch quote');
-        
-        const quoteData = await quoteResponse.json();
-        
-        if (quoteData.length > 0) {
-            const quote = quoteData[0];
-            quoteText.textContent = `"${quote.quote || quote.text || quote.content}"`;
-            quoteReference.textContent = quote.reference || quote.verse || quote.source || '';
-        }
+        quoteText.textContent = `"${quote.quotecontent}"`;
+        quoteReference.textContent = quote.passagenumber || '';
     } catch (error) {
         console.error('Error loading Bible quote:', error);
         // Fallback quote
@@ -1129,7 +1117,9 @@ function loadAllContent() {
     displayWordOfTheDay();
     loadDailyLearnings();
     loadBibleQuote();
+    loadDailyRiddle();
     resetWordReveal();
+    resetRiddleReveal();
 }
 
 // Setup date navigation buttons
@@ -1179,11 +1169,31 @@ function resetWordReveal() {
     guessInput.value = '';
 }
 
-// Get the current viewing date
+// Get the content date based on 6am CST rollover
+// Content changes at 6:00 AM Central Standard Time (UTC-6)
+function getContentDate() {
+    const now = new Date();
+    
+    // Get current time in CST (UTC-6)
+    // Note: CST is always UTC-6 (we use standard time, not daylight saving)
+    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const cstOffset = -6 * 60 * 60 * 1000; // -6 hours in milliseconds
+    const cstTime = new Date(utcTime + cstOffset);
+    
+    // If it's before 6am CST, use yesterday's date
+    if (cstTime.getHours() < 6) {
+        cstTime.setDate(cstTime.getDate() - 1);
+    }
+    
+    // Return just the date part (midnight of that day)
+    return new Date(cstTime.getFullYear(), cstTime.getMonth(), cstTime.getDate());
+}
+
+// Get the current viewing date (with navigation offset applied)
 function getViewingDate() {
-    const date = new Date();
-    date.setDate(date.getDate() + dateOffset);
-    return date;
+    const contentDate = getContentDate();
+    contentDate.setDate(contentDate.getDate() + dateOffset);
+    return contentDate;
 }
 
 // Display current date
@@ -1298,9 +1308,18 @@ function getDayOfYear(date) {
     return Math.floor(diff / oneDay);
 }
 
+// Format date as YYYY-MM-DD without timezone conversion
+function formatDateForQuery(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // Fetch data from Supabase
-async function fetchFromSupabase(table) {
-    const viewingDate = getViewingDate().toISOString().split('T')[0];
+async function fetchFromSupabase(table, dateStr) {
+    const viewingDate = dateStr || formatDateForQuery(getViewingDate());
+    console.log(`Fetching ${table} for date: ${viewingDate}`);
     
     const response = await fetch(
         `${SUPABASE_URL}/rest/v1/${table}?date_added=eq.${viewingDate}&limit=1`,
@@ -1342,55 +1361,74 @@ async function fetchFromSupabase(table) {
 
 // Load daily learnings from Supabase
 async function loadDailyLearnings() {
-    // Load History Learning
-    try {
-        const historyData = await fetchFromSupabase('history_learnings');
-        if (historyData.length > 0) {
-            document.getElementById('history-title').textContent = historyData[0].title;
-            document.getElementById('history-content').textContent = historyData[0].content;
-            document.getElementById('history-source').textContent = historyData[0].source ? `Source: ${historyData[0].source}` : '';
-        } else {
-            document.getElementById('history-title').textContent = 'No history learning available';
-            document.getElementById('history-content').textContent = '';
-        }
-    } catch (error) {
-        console.error('Error loading history learning:', error);
-        document.getElementById('history-title').textContent = 'Failed to load';
-        document.getElementById('history-content').textContent = 'Please check your Supabase configuration.';
+    const dayOfYear = getDayOfYear(getViewingDate());
+    console.log('Loading learnings for day of year:', dayOfYear);
+    
+    // Load all sections in parallel
+    const [historyResult, religionResult, economicsResult] = await Promise.allSettled([
+        fetch(`${SUPABASE_URL}/rest/v1/history_learnings?select=title,content`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        }).then(res => res.json()),
+        fetch(`${SUPABASE_URL}/rest/v1/religion_learnings?select=title,content`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        }).then(res => res.json()),
+        fetch(`${SUPABASE_URL}/rest/v1/economics_learnings?select=title,content`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        }).then(res => res.json())
+    ]);
+    
+    // Process History Learning - rotate daily based on day of year
+    if (historyResult.status === 'fulfilled' && historyResult.value.length > 0) {
+        const allHistory = historyResult.value;
+        const historyIndex = dayOfYear % allHistory.length;
+        const historyData = allHistory[historyIndex];
+        console.log('History index:', historyIndex, 'of', allHistory.length);
+        document.getElementById('history-title').textContent = historyData.title;
+        document.getElementById('history-content').textContent = historyData.content;
+        document.getElementById('history-source').textContent = '';
+    } else {
+        console.error('Error loading history:', historyResult.reason || 'No data');
+        document.getElementById('history-title').textContent = 'No history learning available';
+        document.getElementById('history-content').textContent = '';
     }
-
-    // Load Religion Learning
-    try {
-        const religionData = await fetchFromSupabase('religion_learnings');
-        if (religionData.length > 0) {
-            document.getElementById('religion-title').textContent = religionData[0].title;
-            document.getElementById('religion-content').textContent = religionData[0].content;
-            document.getElementById('religion-source').textContent = religionData[0].source ? `Source: ${religionData[0].source}` : '';
-        } else {
-            document.getElementById('religion-title').textContent = 'No religion learning available';
-            document.getElementById('religion-content').textContent = '';
-        }
-    } catch (error) {
-        console.error('Error loading religion learning:', error);
-        document.getElementById('religion-title').textContent = 'Failed to load';
-        document.getElementById('religion-content').textContent = 'Please check your Supabase configuration.';
+    
+    // Process Religion Learning - use different offset for variety
+    if (religionResult.status === 'fulfilled' && religionResult.value.length > 0) {
+        const allReligion = religionResult.value;
+        const religionIndex = (dayOfYear + 50) % allReligion.length;
+        const religionData = allReligion[religionIndex];
+        console.log('Religion index:', religionIndex, 'of', allReligion.length);
+        document.getElementById('religion-title').textContent = religionData.title;
+        document.getElementById('religion-content').textContent = religionData.content;
+        document.getElementById('religion-source').textContent = '';
+    } else {
+        console.error('Error loading religion:', religionResult.reason || 'No data');
+        document.getElementById('religion-title').textContent = 'No religion learning available';
+        document.getElementById('religion-content').textContent = '';
     }
-
-    // Load Economics Learning
-    try {
-        const economicsData = await fetchFromSupabase('economics_learnings');
-        if (economicsData.length > 0) {
-            document.getElementById('economics-title').textContent = economicsData[0].title;
-            document.getElementById('economics-content').textContent = economicsData[0].content;
-            document.getElementById('economics-source').textContent = economicsData[0].source ? `Source: ${economicsData[0].source}` : '';
-        } else {
-            document.getElementById('economics-title').textContent = 'No economics learning available';
-            document.getElementById('economics-content').textContent = '';
-        }
-    } catch (error) {
-        console.error('Error loading economics learning:', error);
-        document.getElementById('economics-title').textContent = 'Failed to load';
-        document.getElementById('economics-content').textContent = 'Please check your Supabase configuration.';
+    
+    // Process Economics Learning - use different offset for variety
+    if (economicsResult.status === 'fulfilled' && economicsResult.value.length > 0) {
+        const allEconomics = economicsResult.value;
+        const economicsIndex = (dayOfYear + 100) % allEconomics.length;
+        const economicsData = allEconomics[economicsIndex];
+        console.log('Economics index:', economicsIndex, 'of', allEconomics.length);
+        document.getElementById('economics-title').textContent = economicsData.title;
+        document.getElementById('economics-content').textContent = economicsData.content;
+        document.getElementById('economics-source').textContent = '';
+    } else {
+        console.error('Error loading economics:', economicsResult.reason || 'No data');
+        document.getElementById('economics-title').textContent = 'No economics learning available';
+        document.getElementById('economics-content').textContent = '';
     }
 }
 
@@ -1597,10 +1635,9 @@ const riddles = [
 ];
 
 function getDailyRiddle() {
-    const today = new Date();
-    const startOfYear = new Date(today.getFullYear(), 0, 0);
-    const diff = today - startOfYear;
-    const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+    // Use the viewing date so riddle changes with date navigation
+    const viewingDate = getViewingDate();
+    const dayOfYear = getDayOfYear(viewingDate);
     return riddles[dayOfYear % riddles.length];
 }
 
@@ -1628,6 +1665,19 @@ function loadDailyRiddle() {
                 revealBtn.textContent = 'Reveal Answer';
             }
         };
+    }
+}
+
+// Reset riddle reveal state when changing dates
+function resetRiddleReveal() {
+    const answerEl = document.getElementById('riddle-answer');
+    const revealBtn = document.getElementById('reveal-riddle');
+    
+    if (answerEl) {
+        answerEl.classList.add('hidden');
+    }
+    if (revealBtn) {
+        revealBtn.textContent = 'Reveal Answer';
     }
 }
 
