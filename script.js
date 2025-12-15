@@ -17,7 +17,7 @@ async function initAuth() {
 
 // Get access token from storage (localStorage or sessionStorage)
 function getAccessToken() {
-    return getAccessToken() || 
+    return localStorage.getItem('supabase_access_token') || 
            sessionStorage.getItem('supabase_access_token') || 
            '';
 }
@@ -1683,3 +1683,163 @@ function resetRiddleReveal() {
 
 // Initialize riddle on page load
 document.addEventListener('DOMContentLoaded', loadDailyRiddle);
+
+// ==================== PUSH NOTIFICATIONS ====================
+
+// Register service worker
+async function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        try {
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            console.log('Service Worker registered:', registration.scope);
+            return registration;
+        } catch (error) {
+            console.error('Service Worker registration failed:', error);
+        }
+    }
+    return null;
+}
+
+// Check if notifications are supported
+function notificationsSupported() {
+    return 'Notification' in window && 'serviceWorker' in navigator;
+}
+
+// Request notification permission
+async function requestNotificationPermission() {
+    if (!notificationsSupported()) {
+        console.log('Notifications not supported');
+        return false;
+    }
+    
+    const permission = await Notification.requestPermission();
+    console.log('Notification permission:', permission);
+    return permission === 'granted';
+}
+
+// Enable push notifications
+async function enablePushNotifications() {
+    const hasPermission = await requestNotificationPermission();
+    
+    if (hasPermission) {
+        await registerServiceWorker();
+        localStorage.setItem('push_notifications_enabled', 'true');
+        
+        // Show a test notification
+        showNotification('Notifications Enabled! 🔔', 'You\'ll receive daily reminders to start your morning routine.');
+        
+        updateNotificationStatus(true);
+        return true;
+    } else {
+        updateNotificationStatus(false, 'Permission denied');
+        return false;
+    }
+}
+
+// Disable push notifications
+function disablePushNotifications() {
+    localStorage.setItem('push_notifications_enabled', 'false');
+    updateNotificationStatus(false);
+}
+
+// Show a notification
+function showNotification(title, body) {
+    if (Notification.permission === 'granted') {
+        const options = {
+            body: body,
+            icon: '/coffee-icon.png',
+            badge: '/coffee-badge.png',
+            vibrate: [100, 50, 100],
+            tag: 'morning-coffee',
+            requireInteraction: false
+        };
+        
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(title, options);
+            });
+        } else {
+            new Notification(title, options);
+        }
+    }
+}
+
+// Update notification status in UI
+function updateNotificationStatus(enabled, message = null) {
+    const statusEl = document.getElementById('notification-status');
+    const checkbox = document.getElementById('pref-push-notifications');
+    
+    if (statusEl) {
+        if (!notificationsSupported()) {
+            statusEl.textContent = 'Notifications not supported in this browser';
+            statusEl.style.color = '#888';
+        } else if (message) {
+            statusEl.textContent = message;
+            statusEl.style.color = '#ff6b6b';
+        } else if (enabled) {
+            statusEl.textContent = '✓ Notifications enabled';
+            statusEl.style.color = '#6aaa64';
+        } else {
+            statusEl.textContent = 'Get daily reminders to start your morning routine';
+            statusEl.style.color = '#888';
+        }
+    }
+    
+    if (checkbox) {
+        checkbox.checked = enabled;
+    }
+}
+
+// Check if it's time to show morning notification
+function checkMorningNotification() {
+    const enabled = localStorage.getItem('push_notifications_enabled') === 'true';
+    if (!enabled) return;
+    
+    const now = new Date();
+    const hour = now.getHours();
+    const todayKey = `notification_shown_${now.toDateString()}`;
+    const alreadyShown = localStorage.getItem(todayKey);
+    
+    // Show notification between 6 AM and 10 AM if not already shown today
+    if (hour >= 6 && hour < 10 && !alreadyShown) {
+        showNotification('Get After It! 🔥', 'Time to fuel your mind and start strong! ☕');
+        localStorage.setItem(todayKey, 'true');
+    }
+}
+
+// Setup notification toggle
+function setupNotificationToggle() {
+    const checkbox = document.getElementById('pref-push-notifications');
+    
+    if (checkbox) {
+        // Set initial state
+        const enabled = localStorage.getItem('push_notifications_enabled') === 'true';
+        const hasPermission = Notification.permission === 'granted';
+        checkbox.checked = enabled && hasPermission;
+        updateNotificationStatus(enabled && hasPermission);
+        
+        // Handle toggle
+        checkbox.addEventListener('change', async function() {
+            if (this.checked) {
+                const success = await enablePushNotifications();
+                if (!success) {
+                    this.checked = false;
+                }
+            } else {
+                disablePushNotifications();
+            }
+        });
+    }
+}
+
+// Initialize notifications on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Register service worker
+    registerServiceWorker();
+    
+    // Setup toggle
+    setupNotificationToggle();
+    
+    // Check if we should show morning notification
+    checkMorningNotification();
+});
